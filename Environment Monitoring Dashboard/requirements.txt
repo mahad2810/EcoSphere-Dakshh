@@ -1,0 +1,35 @@
+# Core web framework
+streamlit>=1.28.0
+
+# Data manipulation and analysis
+pandas>=2.0.0
+numpy>=1.24.0
+
+# Visualization libraries
+plotly>=5.15.0
+matplotlib>=3.7.0
+seaborn>=0.12.0
+
+# Image processing
+Pillow>=10.0.0
+
+# Data preprocessing
+scikit-learn>=1.3.0
+
+# Geographic data
+pycountry>=22.0.0
+
+# Excel file handling
+openpyxl>=3.1.0
+xlrd>=2.0.0
+
+# Additional utilities (if needed)
+requests>=2.31.0
+urllib3>=2.0.0
+folium>=0.14.0
+streamlit-folium>=0.13.0
+scipy>=1.11.0
+
+netCDF4
+fpdf2
+kaleido>=0.2.1
