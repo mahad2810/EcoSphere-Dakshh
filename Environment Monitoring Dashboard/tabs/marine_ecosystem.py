@@ -55,6 +55,13 @@ def render_marine_ecosystem_tab(marine_data):
         **Official Resource:** [Link to Documentation]({marine_source['Link']})  
         **Verification Tip:** You can cross-check this live data with the Copernicus Marine Global Analysis data portal.
         """)
+        
+        if 'Date' in timeseries_df.columns and not timeseries_df.empty:
+            date_min = pd.to_datetime(timeseries_df['Date'], errors='coerce').min()
+            date_max = pd.to_datetime(timeseries_df['Date'], errors='coerce').max()
+            if pd.notnull(date_min) and pd.notnull(date_max):
+                st.markdown(f"**Data Range Available:** {date_min.strftime('%Y-%m-%d')} to {date_max.strftime('%Y-%m-%d')}")
+        
         if not live_marine_df.empty:
             st.write("### Raw Satellite API Output (Sample)")
             st.dataframe(live_marine_df.head(10), use_container_width=True)
@@ -134,6 +141,7 @@ def render_marine_ecosystem_tab(marine_data):
             fig_temp = apply_dark_theme_to_fig(fig_temp)
 
             st.plotly_chart(fig_temp, use_container_width=True)
+            st.caption("Description: Highlights broad trends and anomalies in the ocean's surface temperature by bridging historical readings with up-to-the-minute live satellite data.")
             figures_to_export.append(fig_temp)
 
         else:
@@ -155,6 +163,7 @@ def render_marine_ecosystem_tab(marine_data):
             fig_salinity = apply_dark_theme_to_fig(fig_salinity)
 
             st.plotly_chart(fig_salinity, use_container_width=True)
+            st.caption("Description: Tracks ongoing changes in global sea surface salinity, which is crucial for monitoring fresh water runoff, ice melt, and ocean current disruptions.")
             figures_to_export.append(fig_salinity)
 
     st.markdown("<hr>", unsafe_allow_html=True)
@@ -217,6 +226,7 @@ def render_marine_ecosystem_tab(marine_data):
         fig_map = apply_dark_theme_to_fig(fig_map)
 
         st.plotly_chart(fig_map, use_container_width=True)
+        st.caption("Description: A spatial plot offering a visual representation of oceanic physical parameters relative to real-world coordinates and geographic features.")
         figures_to_export.append(fig_map)
 
     else:

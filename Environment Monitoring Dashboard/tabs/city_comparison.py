@@ -134,7 +134,7 @@ def render_city_comparison_tab(aqi_data, aqi_metrics):
         )
 
         st.plotly_chart(fig, use_container_width=True)
-
+        st.caption("Description: A comparative density map showing average air quality across key cities, allowing geographic visualization of pollution hotspots.")
         figures_to_export.append(fig)
 
     # -----------------------------
@@ -159,7 +159,7 @@ def render_city_comparison_tab(aqi_data, aqi_metrics):
         fig.update_layout(height=500)
 
         st.plotly_chart(fig, use_container_width=True)
-
+        st.caption("Description: Ranks cities by their overall mean AQI, providing a straightforward baseline comparison of general air quality.")
         figures_to_export.append(fig)
 
     with col2:
@@ -179,7 +179,7 @@ def render_city_comparison_tab(aqi_data, aqi_metrics):
         fig.update_layout(height=500)
 
         st.plotly_chart(fig, use_container_width=True)
-
+        st.caption("Description: Highlights the worst recorded AQI extremes per city, which is critical for identifying locations prone to severe, temporary pollution spikes.")
         figures_to_export.append(fig)
 
     # -----------------------------
@@ -221,7 +221,7 @@ def render_city_comparison_tab(aqi_data, aqi_metrics):
         fig.update_layout(height=600)
 
         st.plotly_chart(fig, use_container_width=True)
-
+        st.caption("Description: A time-series chart enabling direct comparison of multiple cities' monthly air quality trends to pinpoint shared seasonal pollution events.")
         figures_to_export.append(fig)
 
     else:

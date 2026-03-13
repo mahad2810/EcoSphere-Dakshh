@@ -46,6 +46,13 @@ def render_land_ecosystem_tab(land_data):
         st.write(f"**Primary Source:** {soil_source['Provider']}")
         st.write(f"**Methodology:** {soil_source['Method']}")
         st.write(f"**Scientific Reference:** [{soil_source['Link']}]({soil_source['Link']})")
+        
+        if 'Date' in soil_data.columns and not soil_data.empty:
+            date_min = pd.to_datetime(soil_data['Date'], errors='coerce').min()
+            date_max = pd.to_datetime(soil_data['Date'], errors='coerce').max()
+            if pd.notnull(date_min) and pd.notnull(date_max):
+                st.write(f"**Data Range Available (Soil):** {date_min.strftime('%Y-%m-%d')} to {date_max.strftime('%Y-%m-%d')}")
+        
         if not soil_data.empty:
             st.write("### Verified Soil Sensor Stream (Raw Sample)")
             st.dataframe(soil_data.head(5), use_container_width=True)
@@ -109,6 +116,7 @@ def render_land_ecosystem_tab(land_data):
             fig.update_layout(mapbox=dict(center=dict(lat=center_lat, lon=center_lon)), margin=dict(l=0, r=0, t=30, b=0))
             fig = apply_dark_theme_to_fig(fig)
             st.plotly_chart(fig, use_container_width=True)
+            st.caption("Description: A map plotting reported environmental risks and illegal dumping sites. Larger points signify greater affected areas, while colors denote risk severity.")
             figures_to_export.append(fig)
             
     with subtab2:
@@ -132,6 +140,7 @@ def render_land_ecosystem_tab(land_data):
                     )
                     fig = apply_dark_theme_to_fig(fig)
                     st.plotly_chart(fig, use_container_width=True)
+                    st.caption("Description: A histogram classifying deforestation alerts by the magnitude of the affected area, indicating the relative frequency of large vs. small clearance events.")
                     figures_to_export.append(fig)
 
             if 'latitude' in deforestation_data.columns and 'longitude' in deforestation_data.columns:
@@ -150,6 +159,7 @@ def render_land_ecosystem_tab(land_data):
                     fig.update_layout(margin=dict(l=0, r=0, t=30, b=0))
                     fig = apply_dark_theme_to_fig(fig)
                     st.plotly_chart(fig, use_container_width=True)
+                    st.caption("Description: A spatial heatmap pin-pointing locations experiencing active deforestation alerts, illustrating regions with rapid forest cover loss.")
                     figures_to_export.append(fig)
         else:
             st.warning("No deforestation data available.")
@@ -173,6 +183,7 @@ def render_land_ecosystem_tab(land_data):
             fig.update_traces(mode='lines+markers')
             fig = apply_dark_theme_to_fig(fig)
             st.plotly_chart(fig, use_container_width=True)
+            st.caption("Description: A time-series graph demonstrating daily shifts in average soil moisture, vital for understanding regional drought risks or agricultural conditions.")
             figures_to_export.append(fig)
         else:
             st.warning("No historical soil moisture data available.")
@@ -192,6 +203,7 @@ def render_land_ecosystem_tab(land_data):
                     )
                     fig = apply_dark_theme_to_fig(fig)
                     st.plotly_chart(fig, use_container_width=True)
+                    st.caption("Description: Highlights the volume of environmentally hazardous sites categorized by their calculated risk scores, from low to critical.")
                     figures_to_export.append(fig)
                     
                 with col2:
@@ -209,6 +221,7 @@ def render_land_ecosystem_tab(land_data):
                         fig.update_layout(xaxis_tickangle=-45)
                         fig = apply_dark_theme_to_fig(fig)
                         st.plotly_chart(fig, use_container_width=True)
+                        st.caption("Description: A bar chart ranking the top states or regions based on the average environmental risk score associated with local dumping sites.")
                         figures_to_export.append(fig)
         else:
             st.warning("No environmental risk data available.")

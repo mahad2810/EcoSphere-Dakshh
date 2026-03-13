@@ -29,6 +29,10 @@ def render_ghg_emissions_tab(ghg_data, ghg_metrics, has_ghg_data):
         st.write(f"**Primary Provider:** {ghg_source['Provider']}")
         st.write(f"**Methodology:** {ghg_source['Method']}")
         st.write(f"**Verification Portal:** [Climate Watch Platform]({ghg_source['Link']})")
+        
+        if 'Year' in ghg_data.columns and not ghg_data.empty:
+            st.write(f"**Data Range Available:** {ghg_data['Year'].min()} to {ghg_data['Year'].max()}")
+            
         st.caption("Note: This dashboard uses the CAIT Climate Data Explorer dataset, which is the industry standard for historical country-level GHG modeling.")
     
     available_countries = sorted(ghg_data['Country'].unique())
@@ -124,6 +128,7 @@ def render_ghg_emissions_tab(ghg_data, ghg_metrics, has_ghg_data):
         with col1:
             fig = px.pie(sector_data, values='emissions', names='sector', title='Distribution of GHG Emissions by Sector', hole=0.4)
             st.plotly_chart(fig, use_container_width=True)
+            st.caption("Description: This pie chart highlights the proportional contribution of different sectors to total GHG emissions, revealing the primary sources of greenhouse gases.")
             figures_to_export.append(fig)
         with col2:
             top_sectors = sector_data.head(8).copy()
@@ -131,6 +136,7 @@ def render_ghg_emissions_tab(ghg_data, ghg_metrics, has_ghg_data):
             fig = px.bar(top_sectors, y='sector', x='emissions_gt', orientation='h', title='Top Emitting Sectors', text='emissions_gt')
             fig.update_traces(texttemplate='%{text:.2f} Gt', textposition='outside')
             st.plotly_chart(fig, use_container_width=True)
+            st.caption("Description: A ranked bar chart showing the most emission-intensive sectors, with exact values displayed in Gigatons (Gt) of CO₂e.")
             figures_to_export.append(fig)
     with sector_tab2:
         if len(selected_countries_filter) >= 2:
@@ -139,6 +145,7 @@ def render_ghg_emissions_tab(ghg_data, ghg_metrics, has_ghg_data):
             country_sector_data['sector'] = country_sector_data['sector'].str.replace('-', ' ').str.title()
             fig = px.bar(country_sector_data, x='Country', y='emissions_gt', color='sector', barmode='group')
             st.plotly_chart(fig, use_container_width=True)
+            st.caption("Description: A grouped bar chart comparing sectoral emissions side-by-side for the chosen countries, enabling direct contrast of national emissions profiles.")
             figures_to_export.append(fig)
     with sector_tab3:
         if 'yearly_metrics' in filtered_metrics and 'Year' in filtered_ghg_data.columns:
@@ -149,6 +156,7 @@ def render_ghg_emissions_tab(ghg_data, ghg_metrics, has_ghg_data):
             filtered_sector_data = sector_year_data[sector_year_data['sector'].isin(top_sectors_list)]
             fig = px.line(filtered_sector_data, x='Year', y='emissions_gt', color='sector')
             st.plotly_chart(fig, use_container_width=True)
+            st.caption("Description: A time-series graph tracking the evolution of emissions from the top sectors over multiple years. Allows monitoring of policy impact over time.")
             figures_to_export.append(fig)
 
     if 'yearly_metrics' in ghg_metrics:
@@ -157,6 +165,7 @@ def render_ghg_emissions_tab(ghg_data, ghg_metrics, has_ghg_data):
         yearly_data['emissions_gt'] = yearly_data['emissions'] / 1e9
         fig = px.line(yearly_data, x='Year', y='emissions_gt', title='Total GHG Emissions by Year')
         st.plotly_chart(fig, use_container_width=True)
+        st.caption("Description: An overarching line chart depicting the total global greenhouse gas emissions trajectory across all recorded years.")
         figures_to_export.append(fig)
     
     if 'country_metrics' in ghg_metrics:
@@ -183,6 +192,7 @@ def render_ghg_emissions_tab(ghg_data, ghg_metrics, has_ghg_data):
             ))
             fig.update_layout(title="Global Greenhouse Gas Emissions", mapbox=dict(style="carto-darkmatter", zoom=1.2, center={"lat": 20, "lon": 0}), height=600)
             st.plotly_chart(fig, use_container_width=True)
+            st.caption("Description: A geographical density/marker map indicating the absolute volume of GHG emissions from major distinct regions or countries.")
             figures_to_export.append(fig)
 
         st.markdown("### Global Emissions Choropleth Map")
@@ -207,6 +217,7 @@ def render_ghg_emissions_tab(ghg_data, ghg_metrics, has_ghg_data):
         )
         fig.update_layout(height=600, margin={"r":0,"t":50,"l":0,"b":0}, paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)")
         st.plotly_chart(fig, use_container_width=True)
+        st.caption("Description: A color-coded choropleth map providing a clear visual contrast of emission quantities per country across the globe.")
         figures_to_export.append(fig)
 
     st.markdown("<hr>", unsafe_allow_html=True)
