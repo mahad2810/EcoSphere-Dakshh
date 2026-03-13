@@ -1,0 +1,1567 @@
+"use client"
+
+import { useState, useEffect } from "react"
+import Link from "next/link"
+import { useRouter } from "next/navigation"
+import {
+  Award,
+  Bell,
+  BookOpen,
+  Brain,
+  Calendar,
+  Camera,
+  CheckCircle,
+  ChevronDown,
+  Clock,
+  Droplets,
+  Languages,
+  Leaf,
+  MapPin,
+  Play,
+  Plus,
+  Star,
+  TreePine,
+  TrendingUp,
+  User,
+  Users,
+  AlertTriangle,
+  Home,
+  FileText,
+  Trophy,
+  GraduationCap,
+  Route,
+  Video,
+  HelpCircle,
+  ListFilter,
+  ExternalLink,
+  Loader2
+} from "lucide-react"
+import { Button } from "@/components/ui/button"
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { Progress } from "@/components/ui/progress"
+import { Badge } from "@/components/ui/badge"
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
+import QuizModal from "@/components/quiz-modal"
+import { UserMenu } from "@/components/user-menu"
+import { XPAnimation, useQuizToasts } from "@/components/quiz-animations"
+import { MobileNav } from "@/components/ui/mobile-nav"
+import { useAuth } from "@/components/auth-provider"
+import { useUserProgress } from "@/hooks/use-user-progress"
+import { formatDistanceToNow } from "date-fns"
+import EnvironmentalJourney from "@/components/environmental-journey"
+import { GreenTokenBalance } from "@/components/wallet-management"
+import { translations, translateWithParams, type Language } from '@/lib/translations'
+import { JoinProjectsModal } from "@/components/join-projects-modal"
+import { PDFInfoModal } from "@/components/pdf-info-modal"
+import { ProjectDetailsModal } from "@/components/project-details-modal"
+import { UserAttendanceModal } from "@/components/user-attendance-modal"
+import { useToast } from "@/hooks/use-toast"
+
+const languageOptions = [
+  { code: "en", name: "English", nativeName: "English" },
+  { code: "hi", name: "Hindi", nativeName: "हिंदी" },
+  { code: "bn", name: "Bengali", nativeName: "বাংলা" },
+  { code: "ta", name: "Tamil", nativeName: "தமிழ்" },
+  { code: "te", name: "Telugu", nativeName: "తెలుగు" },
+  { code: "mr", name: "Marathi", nativeName: "मराठी" },
+]
+
+// Component to display user's reported environmental issues
+function ReportedIssuesList({ userId }: { userId: string }) {
+  const [issues, setIssues] = useState<any[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  
+  useEffect(() => {
+    async function fetchUserIssues() {
+      if (!userId) return;
+      
+      setIsLoading(true);
+      try {
+        const response = await fetch(`/api/environmental-issue?userId=${userId}`);
+        if (response.ok) {
+          const data = await response.json();
+          if (data.success && data.issues) {
+            setIssues(data.issues);
+          } else {
+            setIssues([]);
+          }
+        } else {
+          setIssues([]);
+        }
+      } catch (error) {
+        console.error('Error fetching user issues:', error);
+        setIssues([]);
+      } finally {
+        setIsLoading(false);
+      }
+    }
+    
+    fetchUserIssues();
+  }, [userId]);
+  
+  if (isLoading) {
+    return (
+      <div className="flex justify-center p-4">
+        <div className="flex items-center">
+          <Loader2 className="h-4 w-4 animate-spin mr-2" />
+          <span>Loading your reports...</span>
+        </div>
+      </div>
+    );
+  }
+  
+  if (issues.length === 0) {
+    return (
+      <div className="text-center py-4 text-muted-foreground">
+        <p>You haven't reported any environmental issues yet.</p>
+        <p className="text-xs mt-2">Use the button above to report your first issue!</p>
+      </div>
+    );
+  }
+  
+  return (
+    <div className="space-y-4">
+      {issues.map((issue) => (
+        <div key={issue._id} className="border border-border/40 rounded-lg p-3 hover:bg-muted/20 transition-colors">
+          <div className="flex justify-between items-start">
+            <h3 className="font-medium text-foreground">{issue.title}</h3>
+            <Badge variant={
+              issue.status === 'resolved' ? 'outline' : 
+              issue.status === 'in-progress' ? 'default' : 
+              'secondary'
+            } className={
+              issue.status === 'resolved' ? 'bg-green-100 text-green-800 hover:bg-green-100' : 
+              issue.status === 'in-progress' ? 'bg-blue-100 text-blue-800 hover:bg-blue-100' : 
+              'bg-amber-100 text-amber-800 hover:bg-amber-100'
+            }>
+              {issue.status === 'reported' ? 'Reported' : 
+              issue.status === 'under-review' ? 'Under Review' : 
+              issue.status === 'in-progress' ? 'In Progress' : 
+              issue.status === 'resolved' ? 'Resolved' : 
+              'Closed'}
+            </Badge>
+          </div>
+          <p className="text-sm text-muted-foreground mt-1 line-clamp-2">{issue.description}</p>
+          <div className="flex items-center text-xs mt-2 text-muted-foreground">
+            <MapPin className="w-3 h-3 mr-1" />
+            <span className="line-clamp-1">{issue.location.address}</span>
+          </div>
+          <div className="flex justify-between items-center mt-2 pt-2 border-t border-border/30">
+            <div className="text-xs text-muted-foreground">
+              {new Date(issue.createdAt).toLocaleDateString()}
+            </div>
+            <Button variant="ghost" size="sm" className="h-7 text-xs">
+              <ExternalLink className="w-3 h-3 mr-1" />
+              Details
+            </Button>
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+export default function UserDashboard() {
+  const [issueTitle, setIssueTitle] = useState("")
+  const [issueLocation, setIssueLocation] = useState("")
+  const [issueDescription, setIssueDescription] = useState("")
+  const [uploadedFiles, setUploadedFiles] = useState<File[]>([])
+  const [language, setLanguage] = useState<"en" | "hi" | "bn" | "ta" | "te" | "mr">("en")
+  const t = translations[language]
+  const [activeSection, setActiveSection] = useState("dashboard")
+  const [educationSubsection, setEducationSubsection] = useState("videos")
+  const [quizModalOpen, setQuizModalOpen] = useState(false)
+  const [pdfModalOpen, setPdfModalOpen] = useState(false)
+  const [projectModalOpen, setProjectModalOpen] = useState(false)
+  const [attendanceModalOpen, setAttendanceModalOpen] = useState(false)
+  const [selectedProjectForAttendance, setSelectedProjectForAttendance] = useState<any>(null)
+  const [attendanceType, setAttendanceType] = useState<'checkin' | 'checkout'>('checkin')
+  const [checkedInProjects, setCheckedInProjects] = useState<Set<string>>(new Set())
+  const [selectedPdf, setSelectedPdf] = useState<any>(null)
+  const [selectedProject, setSelectedProject] = useState<any>(null)
+  const [quizMaterial, setQuizMaterial] = useState<{
+    title: string;
+    type: string;
+    id: string;
+    description?: string;
+  } | null>(null)
+  const { user, loading } = useAuth();
+  const router = useRouter();
+  const { toast } = useToast();
+  const {
+    addUserXP,
+    markItemAsComplete,
+    isItemCompleted,
+    calculateXpForNextLevel,
+    userXp,
+    userLevel,
+  xpForNextLevel,
+    userImpact,
+    activityHistory,
+    completedItems: completedItemsArray,
+    isLoading: progressLoading
+  } = useUserProgress();
+  
+  // Convert completed items array to a Set for faster lookups
+  const [completedItems, setCompletedItems] = useState<Set<string>>(new Set());
+  // XP Animation states
+  const [showXP, setShowXP] = useState(false);
+  const [earnedXP, setEarnedXP] = useState(0);
+  const [showIssueXP, setShowIssueXP] = useState(false);
+  
+  // Sample project data
+  const [availableProjects, setAvailableProjects] = useState([
+    {
+      id: "proj-001",
+      title: "Mumbai Urban Tree Plantation Drive",
+      organization: "Green Mumbai Foundation",
+      location: "Andheri West, Mumbai, Maharashtra",
+      coordinates: {
+        latitude: 19.1197,
+        longitude: 72.8468
+      },
+      startDate: "2025-09-01",
+      endDate: "2026-03-01",
+      participants: 120,
+      maxParticipants: 200,
+      progress: 60,
+      status: "active" as "active",
+      impact: "High",
+      xp: "40 XP",
+      description: "Join the largest urban tree plantation drive in Mumbai! Help plant 5,000 native trees to improve air quality and urban biodiversity. Supported by BMC and local schools.",
+      environmentalImpact: {
+        type: "Urban reforestation to improve air quality and biodiversity",
+        metrics: {
+          treesPlanted: 3200,
+          co2Reduction: 22,
+          areaRestored: 6.5
+        }
+      },
+      goals: [
+        "Plant 5,000 native trees in 10 Mumbai wards",
+        "Create 5 community-managed green zones",
+        "Reduce PM2.5 levels by 10% in target areas",
+        "Engage 20 schools in environmental education"
+      ],
+      requirements: [
+        "Participate in at least 2 planting sessions",
+        "Basic plant care knowledge",
+        "Willingness to work outdoors in Mumbai weather"
+      ],
+      updates: [
+        {
+          date: "2025-10-15",
+          content: "First phase complete: 1,200 trees planted in Andheri and Bandra."
+        },
+        {
+          date: "2025-12-01",
+          content: "Air quality improved by 4% in pilot zones."
+        }
+      ],
+      coordinator: {
+        name: "Dr. Rakesh Patil",
+        contact: "rakesh.patil@greenmumbai.org"
+      },
+      funding: {
+        source: "Brihanmumbai Municipal Corporation (BMC)",
+        amount: "₹22,00,000"
+      },
+      partners: ["BMC", "Mumbai University", "Local Schools"]
+    },
+    {
+      id: "proj-002",
+      title: "Chennai Marina Beach Cleanup",
+      organization: "Ocean Care India",
+      location: "Marina Beach, Chennai, Tamil Nadu",
+      startDate: "2025-08-20",
+      endDate: "2025-11-20",
+      participants: 85,
+      maxParticipants: 150,
+      progress: 70,
+      status: "active" as "active",
+      impact: "Medium",
+      xp: "30 XP",
+      description: "Volunteer for weekend cleanups at Marina Beach! Remove plastic waste, educate beachgoers, and help protect marine life. Supported by Chennai Corporation and local NGOs.",
+      environmentalImpact: {
+        type: "Marine habitat protection and plastic pollution reduction",
+        metrics: {
+          wasteRecycled: 1200,
+          areaRestored: 5.8,
+          speciesProtected: 18
+        }
+      },
+      goals: [
+        "Remove 3 tons of plastic waste from Marina Beach",
+        "Install 20 educational signboards",
+        "Engage 10 local schools in awareness drives",
+        "Reduce plastic pollution by 30% in target zones"
+      ],
+      requirements: [
+        "Commitment to at least 2 cleanup events",
+        "Ability to work in sandy and humid conditions",
+        "Basic understanding of waste segregation"
+      ],
+      updates: [
+        {
+          date: "2024-01-25",
+          content: "First month completed with over 500kg of waste collected. Great progress on the southern sector!"
+        },
+        {
+          date: "2024-02-20",
+          content: "Local marine wildlife showing signs of returning to cleaned areas. Sea turtle nesting increased by 15%."
+        }
+      ],
+      coordinator: {
+        name: "Raj Sharma",
+        contact: "raj@oceanguardians.org"
+      },
+      partners: ["Marine Conservation Institute", "Local Fishermen's Association", "Tourism Board"]
+    },
+    {
+      id: "proj-003",
+      title: "Solar Energy Awareness",
+      organization: "Renewable Future",
+      location: "Multiple Locations",
+      startDate: "2023-12-01",
+      endDate: "2024-06-01",
+      participants: 15,
+      maxParticipants: 30,
+      progress: 35,
+      status: "active" as "active",
+      impact: "Medium",
+      xp: "20 XP",
+      description: "Help promote solar energy adoption through community workshops and demonstrations. Volunteers will assist in organizing events, creating educational materials, and conducting home solar potential assessments.",
+      environmentalImpact: {
+        type: "Renewable energy promotion and carbon footprint reduction",
+        metrics: {
+          co2Reduction: 22
+        }
+      },
+      goals: [
+        "Conduct 20 community workshops about solar energy",
+        "Help 50 households assess their solar potential",
+        "Facilitate solar installation for at least 15 households",
+        "Reduce community carbon footprint by estimated 25 tons annually"
+      ],
+      requirements: [
+        "Basic understanding of renewable energy concepts",
+        "Good communication skills for community engagement",
+        "Ability to assist with technical demonstrations",
+        "Commitment to at least 5 hours per week"
+      ],
+      updates: [
+        {
+          date: "2023-12-20",
+          content: "First 5 workshops completed with over 120 participants. Great interest in home solar assessments."
+        },
+        {
+          date: "2024-02-05",
+          content: "First 10 households have committed to solar installation. Partnership with solar provider secured for discounted rates."
+        }
+      ],
+      coordinator: {
+        name: "Priya Nair",
+        contact: "priya@renewablefuture.org"
+      },
+      funding: {
+        source: "Energy Innovation Grant",
+        amount: "₹10,00,000"
+      },
+      partners: ["State Energy Department", "Solar Solutions Inc.", "Local Community College"]
+    }
+  ]);
+  
+  // Sample joined projects
+  const [joinedProjects, setJoinedProjects] = useState([
+    {
+      id: "proj-001",
+      title: "Urban Reforestation Initiative",
+      organization: "Green Earth Foundation",
+      status: "active" as "active",
+      progress: 45,
+      participants: 28,
+      maxParticipants: 50,
+      daysLeft: 120,
+      xpEarned: 15,
+      totalXp: 30,
+      xp: "30 XP",
+      endDate: "2024-05-15"
+    }
+  ]);
+  
+  const [joinedProjectIds, setJoinedProjectIds] = useState(new Set(["proj-001"]));
+  
+  // Get the current language object
+  const currentLanguage = languageOptions.find(l => l.code === language) || languageOptions[0]
+  
+  // Redirect users to their correct dashboard based on role
+  useEffect(() => {
+    if (!loading && user && user.role !== 'user') {
+      console.log(`User dashboard: Redirecting ${user.role} user to their dashboard`);
+      router.push(`/${user.role}`);
+    }
+  }, [user, loading, router]);
+  
+  // Update completedItems Set from array when available
+  useEffect(() => {
+    if (completedItemsArray && completedItemsArray.length > 0) {
+      setCompletedItems(new Set(completedItemsArray));
+    }
+  }, [completedItemsArray]);
+  
+  // Handle XP animation completion
+  const handleXPAnimationComplete = () => {
+    setShowXP(false);
+    setShowIssueXP(false);
+  };
+
+  // Show loading only while auth provider is loading
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-emerald-50 via-green-50 to-lime-50">
+        <div className="text-center">
+          <div className="w-12 h-12 border-4 border-green-500 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+          <p className="text-lg text-green-700">Loading dashboard...</p>
+        </div>
+      </div>
+    );
+  }
+
+  const handleEducationClick = (item: { id: string; type: string; title: string; description?: string; filename?: string; authors?: string[] | string; journal?: string; publicationDate?: string; abstract?: string; topics?: string[]; pageCount?: number; keywords?: string[]; citation?: string; doi?: string }) => {
+    if (item.type === 'video') {
+      setQuizMaterial({
+        id: item.id,
+        type: item.type,
+        title: item.title,
+        description: item.description
+      });
+      setQuizModalOpen(true);
+    } else if (item.type === 'pdf' && item.filename) {
+      // Process authors properly whether they're a string or array
+      let authorArray: string[] = [];
+      
+      if (Array.isArray(item.authors)) {
+        authorArray = item.authors;
+      } else if (typeof item.authors === 'string') {
+        // If it's a string, split by comma or just use the whole string
+        authorArray = item.authors.includes(',') ? item.authors.split(',').map(a => a.trim()) : [item.authors];
+      } else {
+        authorArray = ["Unknown Author"];
+      }
+      
+  // Get publication date (fallback to a default year string)
+  const pubDate = item.publicationDate || "2023";
+      
+      // Set selected PDF for modal
+      setSelectedPdf({
+        id: item.id,
+        title: item.title,
+        authors: authorArray,
+        journal: item.journal || "Environmental Journal",
+        publicationDate: pubDate,
+        abstract: item.abstract || "This research paper explores environmental conservation strategies.",
+        topics: item.topics || ["Environment", "Conservation"],
+        fileName: item.filename,
+        pageCount: item.pageCount || 10,
+        keywords: item.keywords || ["environment", "research", "sustainability"],
+        citation: item.citation || `${authorArray.join(", ")} (${pubDate}). ${item.title}. ${item.journal || "Environmental Journal"}.`,
+        doi: item.doi
+      });
+      setPdfModalOpen(true);
+    }
+  };
+
+  const toggleCompletion = async (itemId: string, item: any) => {
+    // If already completed, do nothing (we don't allow uncompleting items)
+    if (completedItems.has(itemId)) {
+      return;
+    }
+    
+    // If it's a learning material, show the quiz instead of directly marking complete
+    if (item.type === 'video' || item.type === 'pdf') {
+      handleEducationClick(item);
+      return;
+    }
+    
+    // For other types of items, mark as complete directly
+    const result = await markItemAsComplete(
+      itemId,
+      item.type || 'content',
+      item.title || 'Content item',
+      15 // Default XP amount
+    );
+    
+    if (result.success) {
+      // Update local completion state
+      const newCompletedItems = new Set(completedItems);
+      newCompletedItems.add(itemId);
+      setCompletedItems(newCompletedItems);
+      
+      // Show XP animation
+      setEarnedXP(15);
+      setShowXP(true);
+    }
+  };
+  
+  const handleQuizComplete = async (score: number) => {
+    if (!quizMaterial) return;
+    
+    // Calculate XP based on score with more generous rewards
+    // Base XP: 10 points for attempting
+    // Score bonus: up to 25 extra points based on performance
+    // Perfect score bonus: additional 10 points for 100%
+    const baseXP = 10;
+    const scoreBonus = Math.floor((score / 100) * 25);
+    const perfectBonus = score === 100 ? 10 : 0;
+    const totalXP = baseXP + scoreBonus + perfectBonus;
+    
+    console.log(`Quiz completed with score: ${score}%, Total XP: ${totalXP}`);
+    console.log('Current user XP before completion:', userXp);
+    
+    // Mark the quiz as completed and award XP
+    const result = await markItemAsComplete(
+      quizMaterial.id,
+      'quiz',
+      quizMaterial.title,
+      totalXP
+    );
+    
+    console.log('Mark item complete result:', result);
+    
+    if (result.success) {
+      // Update local completion state
+      const newCompletedItems = new Set(completedItems);
+      newCompletedItems.add(quizMaterial.id);
+      setCompletedItems(newCompletedItems);
+      
+      // Show XP animation
+      setEarnedXP(totalXP);
+      setShowXP(true);
+      
+      console.log(`XP animation triggered with ${totalXP} XP`);
+      console.log('Current user XP after completion:', userXp);
+      
+      // Force a small delay and log the XP again to see if it updates
+      setTimeout(() => {
+        console.log('User XP after 1 second delay:', userXp);
+      }, 1000);
+    }
+  };
+
+  const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(event.target.files || [])
+    setUploadedFiles((prev) => [...prev, ...files])
+    console.log("[v0] Files uploaded:", files.length)
+  }
+
+  // Attendance functions
+  const handleMarkAttendance = (project: any, type: 'checkin' | 'checkout') => {
+    setSelectedProjectForAttendance({
+      id: project.id,
+      title: project.title,
+      organization: project.organization,
+      location: project.location || "Project Location",
+      coordinates: project.coordinates // Add coordinates if available
+    });
+    setAttendanceType(type);
+    setAttendanceModalOpen(true);
+  };
+
+  const handleAttendanceSuccess = () => {
+    if (selectedProjectForAttendance && attendanceType === 'checkin') {
+      setCheckedInProjects(prev => new Set([...prev, selectedProjectForAttendance.id]));
+      toast({
+        title: "Check-in Successful",
+        description: `You have successfully checked in to ${selectedProjectForAttendance.title}.`,
+      });
+    } else if (selectedProjectForAttendance && attendanceType === 'checkout') {
+      setCheckedInProjects(prev => {
+        const newSet = new Set(prev);
+        newSet.delete(selectedProjectForAttendance.id);
+        return newSet;
+      });
+      toast({
+        title: "Check-out Successful", 
+        description: `You have successfully checked out of ${selectedProjectForAttendance.title}.`,
+      });
+    }
+    setAttendanceModalOpen(false);
+    setSelectedProjectForAttendance(null);
+  };
+
+  const hasCheckedInProjects = checkedInProjects.size > 0;
+
+  return (
+    <div className="min-h-screen bg-gradient-to-br from-emerald-50 via-green-50 to-teal-50">
+      {/* Top Navigation Bar */}
+      <header className="sticky top-0 z-50 glass border-b">
+        <div className="flex items-center justify-between px-6 py-4">
+          <div className="flex items-center gap-4">
+            <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-emerald-500 to-green-500 flex items-center justify-center">
+              <Leaf className="w-5 h-5 text-white" />
+            </div>
+            <span className="font-serif font-bold text-xl text-foreground">EcoSpace</span>
+          </div>
+
+          <div className="flex items-center gap-3">
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="ghost" size="sm" className="flex items-center gap-2">
+                  <Languages className="w-4 h-4" />
+                  <span className="text-sm">{currentLanguage?.nativeName}</span>
+                  <ChevronDown className="w-3 h-3" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-40">
+                {languageOptions.map((lang) => (
+                  <DropdownMenuItem
+                    key={lang.code}
+                    onClick={() => setLanguage(lang.code as any)}
+                    className={`flex items-center justify-between ${
+                      language === lang.code ? "bg-emerald-50 text-emerald-700" : ""
+                    }`}
+                  >
+                    <span>{lang.name}</span>
+                    <span className="text-sm font-medium">{lang.nativeName}</span>
+                  </DropdownMenuItem>
+                ))}
+              </DropdownMenuContent>
+            </DropdownMenu>
+            <Button
+              variant="ghost"
+              size="sm"
+              className="relative"
+              onClick={() => console.log("[v0] Notifications clicked")}
+            >
+              <Bell className="w-4 h-4" />
+              <span className="absolute -top-1 -right-1 w-2 h-2 bg-emerald-500 rounded-full"></span>
+            </Button>
+            {/* Use the UserMenu component here */}
+            <UserMenu />
+            
+          </div>
+        </div>
+      </header>
+
+      <div className="flex">
+        <aside className="w-64 min-h-screen glass border-r">
+          <nav className="p-4 space-y-2">
+            <Button
+              variant={activeSection === "dashboard" ? "default" : "ghost"}
+              className={`w-full justify-start h-auto py-3 px-4 ${
+                activeSection === "dashboard" ? "bg-emerald-500 text-white hover:bg-emerald-600" : "hover:bg-emerald-100 hover:text-emerald-800"
+              }`}
+              onClick={() => setActiveSection("dashboard")}
+            >
+              <Home className="w-5 h-5 mr-3 shrink-0" />
+              <div className="flex-1 text-left whitespace-normal break-words">{t.dashboard}</div>
+            </Button>
+            <Button
+              variant={activeSection === "my-active-projects" ? "default" : "ghost"}
+              className={`w-full justify-start h-auto py-3 px-4 ${
+                activeSection === "my-active-projects"
+                  ? "bg-emerald-500 text-white hover:bg-emerald-600"
+                  : "hover:bg-emerald-100 hover:text-emerald-800"
+              }`}
+              onClick={() => setActiveSection("my-active-projects")}
+            >
+              <TreePine className="w-5 h-5 mr-3 shrink-0" />
+              <div className="flex-1 text-left whitespace-normal break-words">{t.myActiveProjects}</div>
+            </Button>
+            <Button
+              variant={activeSection === "report-issue" ? "default" : "ghost"}
+              className={`w-full justify-start h-auto py-3 px-4 ${
+                activeSection === "report-issue"
+                  ? "bg-emerald-500 text-white hover:bg-emerald-600"
+                  : "hover:bg-emerald-100 hover:text-emerald-800"
+              }`}
+              onClick={() => setActiveSection("report-issue")}
+            >
+              <FileText className="w-5 h-5 mr-3 shrink-0" />
+              <div className="flex-1 text-left whitespace-normal break-words">{t.reportIssue}</div>
+            </Button>
+            <Button
+              variant={activeSection === "community-leaderboard" ? "default" : "ghost"}
+              className={`w-full justify-start h-auto py-3 px-4 ${
+                activeSection === "community-leaderboard"
+                  ? "bg-emerald-500 text-white hover:bg-emerald-600"
+                  : "hover:bg-emerald-100 hover:text-emerald-800"
+              }`}
+              onClick={() => setActiveSection("community-leaderboard")}
+            >
+              <Trophy className="w-5 h-5 mr-3 shrink-0" />
+              <div className="flex-1 text-left whitespace-normal break-words">{t.communityLeaderboard}</div>
+            </Button>
+            <Button
+              variant={activeSection === "education-hub" ? "default" : "ghost"}
+              className={`w-full justify-start h-auto py-3 px-4 ${
+                activeSection === "education-hub"
+                  ? "bg-emerald-500 text-white hover:bg-emerald-600"
+                  : "hover:bg-emerald-100 hover:text-emerald-800"
+              }`}
+              onClick={() => setActiveSection("education-hub")}
+            >
+              <GraduationCap className="w-5 h-5 mr-3 shrink-0" />
+              <div className="flex-1 text-left whitespace-normal break-words">{t.environmentEducationHub}</div>
+            </Button>
+            <Button
+              variant={activeSection === "environmental-journey" ? "default" : "ghost"}
+              className={`w-full justify-start h-auto py-3 px-4 ${
+                activeSection === "environmental-journey"
+                  ? "bg-emerald-500 text-white hover:bg-emerald-600"
+                  : "hover:bg-emerald-100 hover:text-emerald-800"
+              }`}
+              onClick={() => setActiveSection("environmental-journey")}
+            >
+              <Route className="w-5 h-5 mr-3 shrink-0" />
+              <div className="flex-1 text-left whitespace-normal break-words">{t.myEnvironmentalJourney}</div>
+            </Button>
+          </nav>
+        </aside>
+
+        <main className="flex-1 p-6">
+          {activeSection === "dashboard" && (
+            <div className="space-y-6">
+              {/* Hero Header with Welcome Message */}
+              <div className="glass-strong rounded-3xl p-8 text-center relative overflow-hidden">
+                <div className="absolute inset-0 bg-gradient-to-r from-emerald-500/10 to-green-500/10" />
+                <div className="relative z-10">
+                  <div className="w-20 h-20 rounded-full bg-gradient-to-br from-emerald-400 to-green-500 flex items-center justify-center mx-auto mb-4">
+                    <TreePine className="w-10 h-10 text-white animate-pulse" />
+                  </div>
+                  <h1 className="font-serif font-bold text-3xl text-foreground mb-2">
+                    {translateWithParams(t, 'welcome', { name: user?.name || 'User' })}
+                  </h1>
+                  <p className="text-lg text-emerald-600 mb-6">{t.progress}</p>
+                  <div className="flex items-center justify-center gap-6 text-sm">
+                    <div className="flex items-center gap-2">
+                      <div className="w-2 h-2 bg-emerald-500 rounded-full animate-pulse" />
+                      <span className="text-emerald-600 font-medium">
+                        {translateWithParams(t, 'progressToLevel', { level: userLevel })} {t.ecoWarrior}
+                      </span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <Star className="w-4 h-4 text-yellow-500" />
+                      <span className="text-emerald-600">{userXp} {t.impactPoints}</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Checkout Alert - Show if user has checked-in projects */}
+              {hasCheckedInProjects && (
+                <div className="bg-orange-50 border border-orange-200 rounded-lg p-4">
+                  <div className="flex items-center gap-3">
+                    <div className="flex-shrink-0">
+                      <Clock className="h-5 w-5 text-orange-600" />
+                    </div>
+                    <div className="flex-1">
+                      <h3 className="text-sm font-medium text-orange-800">
+                        {t.dontForgetCheckout}
+                      </h3>
+                      <p className="text-sm text-orange-700 mt-1">
+                        {translateWithParams(t, 'activeProjectsCheckedIn', { 
+                          count: checkedInProjects.size,
+                          plural: checkedInProjects.size > 1 ? 's' : ''
+                        })} {t.rememberCheckout}
+                      </p>
+                    </div>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setActiveSection("my-active-projects")}
+                      className="bg-orange-100 border-orange-300 text-orange-700 hover:bg-orange-200"
+                    >
+                      {t.checkOut}
+                    </Button>
+                  </div>
+                </div>
+              )}
+
+              {/* My Impact Graphic */}
+              <Card className="glass">
+                <CardHeader>
+                  <CardTitle className="text-lg font-serif flex items-center gap-2">
+                    <Award className="w-5 h-5 text-emerald-600" />
+                    {t.myImpact}
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-6">
+                    {/* Circular Progress Chart */}
+                    <div className="flex items-center justify-center">
+                      <div className="relative w-32 h-32">
+                        <div className="absolute inset-0 rounded-full bg-gradient-to-r from-emerald-500 to-green-500 p-1">
+                          <div className="w-full h-full rounded-full bg-background flex items-center justify-center">
+                            <div className="text-center">
+                              <div className="text-2xl font-bold text-emerald-600">{userXp.toLocaleString()}</div>
+                              <div className="text-xs text-emerald-600">{t.xpPoints}</div>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Impact Stats */}
+                    <div className="grid grid-cols-3 gap-4">
+                      <div className="text-center p-3 rounded-lg bg-emerald-50">
+                        <TreePine className="w-6 h-6 text-emerald-600 mx-auto mb-2" />
+                        <div className="text-lg font-bold text-emerald-600">{userImpact.treesPlanted}</div>
+                        <div className="text-xs text-emerald-600">{t.treesPlanted}</div>
+                      </div>
+                      <div className="text-center p-3 rounded-lg bg-green-50">
+                        <Leaf className="w-6 h-6 text-green-600 mx-auto mb-2" />
+                        <div className="text-lg font-bold text-green-600">{userImpact.co2Offset}kg</div>
+                        <div className="text-xs text-emerald-600">{t.co2Offset}</div>
+                      </div>
+                      <div className="text-center p-3 rounded-lg bg-teal-50">
+                        <Droplets className="w-6 h-6 text-teal-600 mx-auto mb-2" />
+                        <div className="text-lg font-bold text-teal-600">{userImpact.waterSaved}L</div>
+                        <div className="text-xs text-emerald-600">{t.waterSaved}</div>
+                      </div>
+                    </div>
+
+                    {/* Progress to Next Level */}
+                    {/* Progress to Next Level */}
+                    <div className="space-y-2">
+                      {(() => {
+                        const xpInfo = calculateXpForNextLevel();
+                        const nextLevel = userLevel + 1;
+                        const totalForNext = xpForNextLevel || Math.pow(userLevel, 2) * 10; // fallback if needed
+                        return (
+                          <>
+                            <div className="flex items-center justify-between text-sm">
+                              <span className="text-emerald-600">
+                                {translateWithParams(t, 'progressToLevel', { level: nextLevel })}
+                              </span>
+                              <span className="font-medium">{userXp} / {totalForNext} XP</span>
+                            </div>
+                            <Progress value={xpInfo.percentage} className="h-2" />
+                            <p className="text-xs text-emerald-600">{xpInfo.needed} XP {t.xpNeeded}</p>
+                          </>
+                        );
+                      })()}
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* EcoWallet Dashboard */}
+              <GreenTokenBalance />
+            </div>
+          )}
+
+          {activeSection === "my-active-projects" && (
+            <Card className="glass">
+              <CardHeader className="flex flex-row items-center justify-between">
+                <CardTitle className="text-lg font-serif">{t.activeProjects}</CardTitle>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="bg-transparent"
+                  onClick={() => setProjectModalOpen(true)}
+                >
+                  <Plus className="w-4 h-4 mr-2" />
+                  {t.joinMore}
+                </Button>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-4">
+                  {joinedProjects.map((project, index) => (
+                    <div
+                      key={project.id}
+                      className="p-4 rounded-lg border border-emerald-200 bg-emerald-50/50"
+                    >
+                      <div className="flex items-center justify-between mb-2">
+                        <h4 className="font-medium text-foreground">{project.title}</h4>
+                        <Badge className="bg-emerald-100 text-emerald-700">{project.xp}</Badge>
+                      </div>
+                      <p className="text-sm text-muted-foreground mb-3">
+                        <span className="font-medium">{project.organization}</span>
+                      </p>
+                      
+                      <div className="grid grid-cols-2 gap-3 mb-4">
+                        <div className="rounded-md bg-emerald-50 border border-emerald-100 p-2 text-center">
+                          <div className="text-xs text-muted-foreground mb-1">{t.progressLabel}</div>
+                          <div className="font-medium text-emerald-700">{project.progress}%</div>
+                        </div>
+                        <div className="rounded-md bg-blue-50 border border-blue-100 p-2 text-center">
+                          <div className="text-xs text-muted-foreground mb-1">{t.xpEarned}</div>
+                          <div className="font-medium text-blue-700">{project.xpEarned}/{project.totalXp}</div>
+                        </div>
+                      </div>
+                      
+                      <div className="flex items-center justify-between text-sm mb-3">
+                        <span className="flex items-center text-emerald-700 gap-1">
+                          <Users className="h-3.5 w-3.5" />
+                          {project.participants}/{project.maxParticipants} {t.participants}
+                        </span>
+                        <span className="flex items-center text-amber-700 gap-1">
+                          <Clock className="h-3.5 w-3.5" />
+                          {project.daysLeft} {t.timeLeft}
+                        </span>
+                      </div>
+                      
+                      <div className="mt-2">
+                        <div className="flex items-center justify-between text-xs mb-1">
+                          <span>{project.status === "active" ? "In progress" : project.status}</span>
+                          <span>{project.progress}%</span>
+                        </div>
+                        <Progress value={project.progress} className="h-2" />
+                      </div>
+                      
+                      <div className="mt-3 flex gap-2">
+                        {/* Mark Attendance Button */}
+                        <Button
+                          variant={checkedInProjects.has(project.id) ? "destructive" : "default"}
+                          size="sm"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            const isCheckedIn = checkedInProjects.has(project.id);
+                            handleMarkAttendance(project, isCheckedIn ? 'checkout' : 'checkin');
+                          }}
+                          className="flex-1"
+                        >
+                          {checkedInProjects.has(project.id) ? (
+                            <>
+                              <Clock className="w-3 h-3 mr-1" />
+                              Check Out
+                            </>
+                          ) : (
+                            <>
+                              <CheckCircle className="w-3 h-3 mr-1" />
+                              Check In
+                            </>
+                          )}
+                        </Button>
+                        
+                        {/* View Details Button */}
+                        <Button 
+                          variant="outline" 
+                          size="sm"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            // Find the full project data in availableProjects
+                            const fullProjectData = availableProjects.find(p => p.id === project.id);
+                            if (fullProjectData) {
+                              setSelectedProject(fullProjectData);
+                              setProjectModalOpen(true);
+                            }
+                          }}
+                        >
+                          View Details
+                        </Button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
+          )}
+
+          {activeSection === "report-issue" && (
+            <div className="space-y-6">
+              <Card className="glass">
+                <CardHeader>
+                  <CardTitle className="text-lg font-serif flex items-center gap-2">
+                    <Camera className="w-5 h-5 text-orange-600" />
+                    {t.reportIssue}
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="text-center space-y-4">
+                    <div className="w-20 h-20 rounded-full bg-gradient-to-br from-orange-400 to-red-500 flex items-center justify-center mx-auto">
+                      <AlertTriangle className="w-10 h-10 text-white" />
+                    </div>
+                    <div>
+                      <h3 className="font-medium text-foreground mb-2">{t.spottedIssue}</h3>
+                      <p className="text-sm text-emerald-600 mb-4">{t.reportDescription}</p>
+                    </div>
+                    <Link href="/report-issue">
+                      <Button className="w-full bg-emerald-500 hover:bg-emerald-600 text-white">{t.reportButton}</Button>
+                    </Link>
+                    <div className="grid grid-cols-2 gap-3 text-xs text-emerald-600">
+                      <div className="flex items-center gap-1">
+                        <Camera className="w-3 h-3" />
+                        <span>{t.photoEvidence}</span>
+                      </div>
+                      <div className="flex items-center gap-1">
+                        <MapPin className="w-3 h-3" />
+                        <span>{t.gpsLocation}</span>
+                      </div>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+              
+              {user && (
+                <Card className="glass">
+                  <CardHeader className="pb-2">
+                    <CardTitle className="text-lg font-serif flex items-center gap-2">
+                      <ListFilter className="w-5 h-5 text-orange-600" />
+                      Your Reported Issues
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <ReportedIssuesList userId={user.id} />
+                  </CardContent>
+                </Card>
+              )}
+            </div>
+          )}
+
+          {activeSection === "community-leaderboard" && (
+            <Card className="glass">
+              <CardHeader>
+                <CardTitle className="text-lg font-serif flex items-center gap-2">
+                  <TrendingUp className="w-5 h-5 text-yellow-600" />
+                  {t.leaderboard}
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                {/* ... existing leaderboard content ... */}
+                <div className="space-y-3">
+                  {[
+                    { name: user?.name || "Priya Sharma", points: userXp > 3240 ? userXp : 3240, rank: 1, change: "up", avatar: user?.name ? user?.name.substring(0, 2).toUpperCase() : "PS" },
+                    { name: "Rahul Kumar", points: 2890, rank: 2, change: "same", avatar: "RK" },
+                    { name: "Arjun Patel", points: 2450, rank: 3, change: "up", avatar: "AP" },
+                    { name: "Sneha Gupta", points: 2180, rank: 4, change: "down", avatar: "SG" },
+                    { name: "Vikram Singh", points: 1950, rank: 5, change: "up", avatar: "VS" },
+                  ].map((leaderboardUser, index) => (
+                    <div
+                      key={index}
+                      className={`flex items-center justify-between p-3 rounded-lg transition-colors ${
+                        leaderboardUser.name === user?.name ? "bg-emerald-100 border border-emerald-200" : "bg-emerald-50"
+                      }`}
+                    >
+                      <div className="flex items-center gap-3">
+                        <div className="flex items-center gap-2">
+                          <span className="text-lg font-bold text-emerald-600">#{leaderboardUser.rank}</span>
+                          {leaderboardUser.change === "up" && <TrendingUp className="w-3 h-3 text-green-500" />}
+                          {leaderboardUser.change === "down" && <TrendingUp className="w-3 h-3 text-red-500 rotate-180" />}
+                        </div>
+                        <div className="w-8 h-8 rounded-full bg-gradient-to-br from-emerald-400 to-green-500 flex items-center justify-center">
+                          <span className="text-xs font-bold text-white">{leaderboardUser.avatar}</span>
+                        </div>
+                        <span className="font-medium text-foreground">{leaderboardUser.name}</span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <span className="font-bold text-emerald-600">{leaderboardUser.points.toLocaleString()}</span>
+                        <span className="text-xs text-emerald-600">XP</span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+                <Button
+                  variant="outline"
+                  className="w-full mt-4 bg-transparent"
+                  onClick={() => console.log("[v0] View Full Leaderboard clicked")}
+                >
+                  {t.viewFullLeaderboard}
+                </Button>
+              </CardContent>
+            </Card>
+          )}
+
+          {activeSection === "education-hub" && (
+            <div className="space-y-6">
+              <Card className="glass">
+                <CardHeader>
+                  <CardTitle className="text-lg font-serif flex items-center gap-2">
+                    <BookOpen className="w-5 h-5 text-blue-600" />
+                    {t.educationHub}
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="flex gap-2 mb-6">
+                    <Button
+                      variant={educationSubsection === "videos" ? "default" : "outline"}
+                      size="sm"
+                      className={`${
+                        educationSubsection === "videos"
+                          ? "bg-emerald-500 text-white hover:bg-emerald-600"
+                          : "hover:bg-emerald-50"
+                      }`}
+                      onClick={() => setEducationSubsection("videos")}
+                    >
+                      <Video className="w-4 h-4 mr-2" />
+                      {t.educationalVideos}
+                    </Button>
+                    <Button
+                      variant={educationSubsection === "pdfs" ? "default" : "outline"}
+                      size="sm"
+                      className={`${
+                        educationSubsection === "pdfs"
+                          ? "bg-emerald-500 text-white hover:bg-emerald-600"
+                          : "hover:bg-emerald-50"
+                      }`}
+                      onClick={() => setEducationSubsection("pdfs")}
+                    >
+                      <BookOpen className="w-4 h-4 mr-2" />
+                      {language === "en" ? "Research Papers" : "शोध पत्र"}
+                    </Button>
+                  </div>
+
+                  {educationSubsection === "videos" && (
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                      {[
+                        {
+                          id: "video-1",
+                          type: "video",
+                          title: language === "en" ? "Climate Change Basics" : "जलवायु परिवर्तन मूल बातें",
+                          duration: language === "en" ? "5 min" : "5 मिनट",
+                          xp: "+5 XP",
+                          description: language === "en" ? "Understanding the fundamentals of climate change" : "जलवायु परिवर्तन की मूल बातें समझना",
+                          level: language === "en" ? "Beginner" : "शुरुआती",
+                          url: "https://youtu.be/k_yIpmLNMqU",
+                          youtubeId: "k_yIpmLNMqU",
+                        },
+                        {
+                          id: "video-2",
+                          type: "video", 
+                          title: language === "en" ? "Ocean Conservation" : "समुद्री संरक्षण",
+                          duration: language === "en" ? "8 min" : "8 मिनट",
+                          xp: "+8 XP",
+                          description: language === "en" ? "Protecting our marine ecosystems" : "हमारे समुद्री पारिस्थितिक तंत्र की रक्षा",
+                          level: language === "en" ? "Intermediate" : "मध्यम",
+                          url: "https://youtu.be/Xu_GqF3yiHA",
+                          youtubeId: "Xu_GqF3yiHA",
+                        },
+                        {
+                          id: "video-3",
+                          type: "video",
+                          title: language === "en" ? "Renewable Energy Solutions" : "नवीकरणीय ऊर्जा समाधान",
+                          duration: language === "en" ? "12 min" : "12 मिनट",
+                          xp: "+12 XP",
+                          description: language === "en" ? "Exploring sustainable energy alternatives" : "स्थायी ऊर्जा विकल्पों की खोज",
+                          level: language === "en" ? "Advanced" : "उन्नत",
+                          url: "https://youtu.be/HbW_WAIZ2OE",
+                          youtubeId: "HbW_WAIZ2OE",
+                        },
+                        {
+                          id: "video-4",
+                          type: "video",
+                          title: language === "en" ? "Sustainable Agriculture" : "टिकाऊ कृषि",
+                          duration: language === "en" ? "6 min" : "6 मिनट",
+                          xp: "+6 XP",
+                          description: language === "en" ? "Eco-friendly farming practices" : "पर्यावरण अनुकूल कृषि प्रथाएं",
+                          level: language === "en" ? "Beginner" : "शुरुआती",
+                          url: "https://youtu.be/ipVxxxqwBQw",
+                          youtubeId: "ipVxxxqwBQw",
+                        },
+                        {
+                          id: "video-5",
+                          type: "video",
+                          title: language === "en" ? "Wildlife Protection" : "वन्यजीव संरक्षण",
+                          duration: language === "en" ? "10 min" : "10 मिनट",
+                          xp: "+10 XP",
+                          description: language === "en" ? "Preserving species and ecosystems" : "प्रजातियों और पारिस्थितिक तंत्र का संरक्षण",
+                          level: language === "en" ? "Intermediate" : "मध्यम",
+                          url: "https://youtu.be/wbR-5mHI6bo",
+                          youtubeId: "wbR-5mHI6bo",
+                        },
+                        {
+                          id: "video-6",
+                          type: "video",
+                          title: language === "en" ? "Green Technology" : "हरित प्रौद्योगिकी",
+                          duration: language === "en" ? "15 min" : "15 मिनट",
+                          xp: "+15 XP",
+                          description: language === "en" ? "Eco-friendly technological innovations" : "पर्यावरण अनुकूल तकनीकी नवाचार",
+                          level: language === "en" ? "Advanced" : "उन्नत",
+                          url: "https://youtu.be/LxgMdjyw8uw",
+                          youtubeId: "LxgMdjyw8uw",
+                        },
+                        {
+                          id: "video-7",
+                          type: "video",
+                          title: language === "en" ? "Sustainability in Practice" : "व्यवहार में स्थिरता",
+                          duration: language === "en" ? "9 min" : "9 मिनट",
+                          xp: "+9 XP",
+                          description: language === "en" ? "Real-world sustainability case studies" : "वास्तविक दुनिया के स्थिरता केस अध्ययन",
+                          level: language === "en" ? "Intermediate" : "मध्यम",
+                          url: "https://youtu.be/RnvCbquYeIM",
+                          youtubeId: "RnvCbquYeIM",
+                        },
+                      ].map((video) => (
+                        <div
+                          key={video.id}
+                          className="group p-4 rounded-lg bg-muted/30 hover:bg-muted/50 transition-all cursor-pointer hover:scale-105 relative"
+                        >
+                          {completedItems.has(video.id) && (
+                            <div className="absolute top-2 right-2 w-6 h-6 bg-green-500 rounded-full flex items-center justify-center z-10">
+                              <CheckCircle className="w-4 h-4 text-white" />
+                            </div>
+                          )}
+                          <div 
+                            className="w-full h-24 rounded-lg mb-3 relative overflow-hidden"
+                            onClick={() => handleEducationClick(video)}
+                          >
+                            <img
+                              src={`https://img.youtube.com/vi/${(video as any).youtubeId}/hqdefault.jpg`}
+                              alt={video.title}
+                              className="w-full h-full object-cover"
+                              loading="lazy"
+                            />
+                            <div className="absolute inset-0 bg-black/20" />
+                            <Play className="w-8 h-8 text-white absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 drop-shadow" />
+                            <div className="absolute top-2 right-2">
+                              <Badge className="bg-blue-100 text-blue-700 text-xs">
+                                {video.level}
+                              </Badge>
+                            </div>
+                          </div>
+                          <h4 className="font-medium text-foreground mb-1 group-hover:text-emerald-600 transition-colors">
+                            {video.title}
+                          </h4>
+                          <p className="text-xs text-muted-foreground mb-2">{video.description}</p>
+                          <div className="flex items-center justify-between text-xs text-muted-foreground mb-2">
+                            <span>{video.duration}</span>
+                            <Badge className="bg-emerald-100 text-emerald-700">{video.xp}</Badge>
+                          </div>
+                          <div className="flex gap-2">
+                            <Button asChild variant="outline" size="sm" className="flex-1">
+                              <a href={(video as any).url} target="_blank" rel="noopener noreferrer">Watch</a>
+                            </Button>
+                            <Button
+                              variant={completedItems.has(video.id) ? "secondary" : "outline"}
+                              size="sm"
+                              className="flex-1"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                toggleCompletion(video.id, video);
+                              }}
+                            >
+                              {completedItems.has(video.id) ? "Completed" : "Mark as Complete"}
+                            </Button>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+
+                  {/* PDF Section */}
+                  {educationSubsection === "pdfs" && (
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                      {[
+                        {
+                          id: "pdf-1",
+                          type: "pdf",
+                          title: "Marine Conservation Strategies",
+                          filename: "1-s2.0-S0308597X14003182-main.pdf",
+                          description: "Comprehensive research on ocean protection methods",
+                          pages: "15 pages",
+                          xp: "+15 XP",
+                          authors: ["James R. Wilson", "Matthew S. Booker"],
+                          journal: "Marine Policy",
+                          publicationDate: "2014",
+                          abstract: "This paper examines marine conservation practices in protected areas, analyzing the effectiveness of current strategies and proposing innovative approaches for sustainable resource management.",
+                          topics: ["Marine Conservation", "Resource Management"],
+                          pageCount: 15,
+                          keywords: ["ocean", "conservation", "sustainable practices", "marine policy"],
+                          citation: "Wilson, J.R., & Booker, M.S. (2014). Marine Conservation Strategies. Marine Policy, 45, 296-308."
+                        },
+                        {
+                          id: "pdf-2", 
+                          type: "pdf",
+                          title: "Sustainable Development Goals",
+                          filename: "1-s2.0-S0964569123001047-main.pdf",
+                          description: "Analysis of environmental sustainability targets",
+                          pages: "22 pages",
+                          xp: "+20 XP",
+                          authors: ["Eliza Chen", "Omar Al-Farsi"],
+                          journal: "Ocean & Coastal Management",
+                          publicationDate: "2023",
+                          abstract: "This research evaluates progress toward the UN's Sustainable Development Goals related to marine ecosystems, highlighting challenges and opportunities in implementation across different regions.",
+                          topics: ["Sustainable Development", "Policy", "Marine Ecosystems"],
+                          pageCount: 22,
+                          keywords: ["SDGs", "sustainability", "environmental policy", "marine conservation"],
+                          citation: "Chen, E., & Al-Farsi, O. (2023). Sustainable Development Goals. Ocean & Coastal Management, 107, 123-145."
+                        },
+                        {
+                          id: "pdf-3",
+                          type: "pdf",
+                          title: "Climate Change Impact Assessment",
+                          filename: "10.1002@bse.2514.pdf",
+                          description: "Business strategies for climate adaptation",
+                          pages: "18 pages", 
+                          xp: "+18 XP",
+                          authors: ["Sarah Delgado", "Raj Patel"],
+                          journal: "Business Strategy and the Environment",
+                          publicationDate: "2021",
+                          abstract: "An examination of how businesses are responding to climate challenges through adaptation strategies, risk assessments, and innovative operational changes to reduce environmental impact.",
+                          topics: ["Climate Change", "Business Strategy", "Adaptation"],
+                          pageCount: 18,
+                          keywords: ["climate change", "business strategy", "adaptation", "risk assessment"],
+                          citation: "Delgado, S., & Patel, R. (2021). Climate Change Impact Assessment. Business Strategy and the Environment, 30(4), 1859-1878."
+                        },
+                        {
+                          id: "pdf-4",
+                          type: "pdf",
+                          title: "Environmental Management Systems",
+                          filename: "10.1016@j.jenvman.2005.04.004.pdf",
+                          description: "Framework for environmental management",
+                          pages: "12 pages",
+                          xp: "+12 XP",
+                          authors: "Thomas Lee, Chang Wu",
+                          journal: "Journal of Environmental Management",
+                          publicationYear: "2005",
+                          abstract: "This paper presents a comprehensive framework for implementing environmental management systems in organizations, with case studies demonstrating successful approaches across industries."
+                        },
+                        {
+                          id: "pdf-5",
+                          type: "pdf", 
+                          title: "Conservation Biology Principles",
+                          filename: "10.1111@cobi.13252.pdf",
+                          description: "Modern approaches to biodiversity conservation",
+                          pages: "25 pages",
+                          xp: "+25 XP",
+                          authors: "Maria Gonzalez, Peter Svenson",
+                          journal: "Conservation Biology",
+                          publicationYear: "2019",
+                          abstract: "A review of contemporary conservation biology principles with emphasis on integrating traditional ecological knowledge with modern scientific approaches to protect biodiversity."
+                        },
+                        {
+                          id: "pdf-6",
+                          type: "pdf",
+                          title: "Marine Resource Management",
+                          filename: "fmars-3-1542705.pdf",
+                          description: "Frontiers in marine science research",
+                          pages: "20 pages",
+                          xp: "+20 XP",
+                          authors: "Alisha Patel, Richard Thompson",
+                          journal: "Frontiers in Marine Science",
+                          publicationYear: "2020",
+                          abstract: "This research explores sustainable approaches to marine resource management, examining stakeholder collaboration, ecosystem-based management, and innovative conservation technologies."
+                        },
+                        {
+                          id: "pdf-7",
+                          type: "pdf",
+                          title: "Collaborating for Marine Conservation",
+                          filename: "Workshop-Report-Collaborating-for-Marine-Conservation-and-Resource-Management-in-the-Andaman-and-Nicoba.pdf",
+                          description: "Workshop report on collaborative conservation efforts",
+                          pages: "32 pages",
+                          xp: "+30 XP",
+                          authors: "Andaman Conservation Initiative",
+                          journal: "Workshop Report",
+                          publicationYear: "2022",
+                          abstract: "Outcomes from a multi-stakeholder workshop addressing marine conservation challenges in the Andaman and Nicobar Islands, with emphasis on local community involvement and traditional ecological knowledge."
+                        },
+                        {
+                          id: "pdf-8",
+                          type: "pdf",
+                          title: "Sustainability Best Practices",
+                          filename: "sustainability-17-06371.pdf",
+                          description: "Framework for environmental sustainability implementation",
+                          pages: "28 pages",
+                          xp: "+25 XP",
+                          authors: "Julia Martinez, David Wong",
+                          journal: "Sustainability",
+                          publicationYear: "2023",
+                          abstract: "A comprehensive analysis of best practices for implementing environmental sustainability measures across various sectors, with metrics for measuring progress and impact."
+                        },
+                        {
+                          id: "pdf-9",
+                          type: "pdf",
+                          title: "Science Advances in Conservation",
+                          filename: "sciadv.aay9969.pdf",
+                          description: "Latest scientific advances in conservation biology",
+                          pages: "18 pages",
+                          xp: "+20 XP",
+                          authors: "Emily Johnson, Hiroshi Tanaka",
+                          journal: "Science Advances",
+                          publicationYear: "2021",
+                          abstract: "This paper presents groundbreaking research in conservation biology, highlighting technological innovations and methodological advances that are transforming the field."
+                        },
+                      ].map((item) => (
+                        <div
+                          key={item.id}
+                          className="group p-4 rounded-lg bg-muted/30 hover:bg-muted/50 transition-all cursor-pointer hover:scale-105 relative"
+                        >
+                          {completedItems.has(item.id) && (
+                            <div className="absolute top-2 right-2 w-6 h-6 bg-green-500 rounded-full flex items-center justify-center z-10">
+                              <CheckCircle className="w-4 h-4 text-white" />
+                            </div>
+                          )}
+                          <div 
+                            className="w-full h-24 rounded-lg mb-3 relative overflow-hidden bg-muted"
+                            onClick={() => handleEducationClick(item)}
+                          >
+                            {/* Inline PDF preview (first page) */}
+                            <object
+                              data={`/Education/${item.filename}#page=1&view=FitH`}
+                              type="application/pdf"
+                              className="w-full h-full pointer-events-none"
+                              aria-hidden="true"
+                            >
+                              <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-green-100 to-blue-100">
+                                <BookOpen className="w-8 h-8 text-green-600" />
+                              </div>
+                            </object>
+                            <div className="absolute bottom-2 right-2">
+                              <Badge className="bg-blue-100 text-blue-700 text-xs">
+                                {item.publicationYear || "PDF"}
+                              </Badge>
+                            </div>
+                          </div>
+                          <h4 className="font-medium text-foreground mb-1 group-hover:text-emerald-600 transition-colors">
+                            {item.title}
+                          </h4>
+                          <p className="text-xs text-muted-foreground mb-2">{item.description}</p>
+                          <div className="flex items-center justify-between text-xs text-muted-foreground mb-2">
+                            <span>{item.pages}</span>
+                            <Badge className="bg-emerald-100 text-emerald-700">{item.xp}</Badge>
+                          </div>
+                          <Button
+                            variant={completedItems.has(item.id) ? "secondary" : "outline"}
+                            size="sm"
+                            className="w-full"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              toggleCompletion(item.id, item);
+                            }}
+                          >
+                            {completedItems.has(item.id) ? "Completed" : "Mark as Complete"}
+                          </Button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                  
+                </CardContent>
+              </Card>
+            </div>
+          )}
+
+          {activeSection === "environmental-journey" && (
+            <div className="space-y-6">
+              <EnvironmentalJourney 
+                activityHistory={activityHistory} 
+                language={language} 
+                translations={translations} 
+              />
+            </div>
+          )}
+        </main>
+      </div>
+      
+      {/* XP Animation for quiz/educational content */}
+      <XPAnimation 
+        show={showXP} 
+        xp={earnedXP} 
+        onComplete={handleXPAnimationComplete}
+      />
+      
+      {/* XP Animation for issue reporting */}
+      <XPAnimation 
+        show={showIssueXP} 
+        xp={10} 
+        onComplete={handleXPAnimationComplete}
+      />
+      
+      {/* Quiz Modal */}
+      <QuizModal
+        isOpen={quizModalOpen}
+        onClose={() => setQuizModalOpen(false)}
+        materialTitle={quizMaterial?.title || ''}
+        materialType={quizMaterial?.type || ''}
+        materialId={quizMaterial?.id || ''}
+        materialDescription={quizMaterial?.description}
+        onQuizComplete={handleQuizComplete}
+      />
+      
+      {/* PDF Info Modal */}
+      <PDFInfoModal 
+        pdf={selectedPdf}
+        open={pdfModalOpen}
+        onOpenChange={setPdfModalOpen}
+        onStartQuiz={() => {
+          if (selectedPdf) {
+            setQuizMaterial({
+              id: selectedPdf.id,
+              type: 'quiz',
+              title: selectedPdf.title,
+              description: `Quiz on "${selectedPdf.title}"`
+            });
+            setQuizModalOpen(true);
+          }
+        }}
+      />
+
+      {/* Join Projects Modal */}
+      {/* Join Projects Modal - Only for browsing and joining new projects */}
+      <JoinProjectsModal
+        open={projectModalOpen && selectedProject === null}
+        onOpenChange={(open) => {
+          if (!open) {
+            setProjectModalOpen(false);
+          }
+        }}
+        availableProjects={availableProjects}
+        joinedProjectIds={Array.from(joinedProjectIds)}
+        onJoinProject={(projectId) => {
+          // Logic to join a project
+          console.log(`Joining project with ID: ${projectId}`);
+          
+          // Find the project in availableProjects
+          const projectToJoin = availableProjects.find(p => p.id === projectId);
+          
+          if (projectToJoin) {
+            // Add to joined projects
+            const newJoinedProject = {
+              id: projectToJoin.id,
+              title: projectToJoin.title,
+              organization: projectToJoin.organization,
+              status: projectToJoin.status,
+              progress: projectToJoin.progress,
+              participants: projectToJoin.participants,
+              maxParticipants: projectToJoin.maxParticipants,
+              daysLeft: 120, // Calculate actual days remaining
+              xpEarned: 0,
+              totalXp: parseInt(projectToJoin.xp.replace(' XP', '')),
+              xp: projectToJoin.xp,
+              endDate: projectToJoin.endDate
+            };
+            
+            setJoinedProjects([...joinedProjects, newJoinedProject]);
+            
+            // Update joined project IDs
+            const updatedJoinedIds = new Set(joinedProjectIds);
+            updatedJoinedIds.add(projectId);
+            setJoinedProjectIds(updatedJoinedIds);
+            
+            // Show success toast
+            toast({
+              title: "Project Joined",
+              description: `You've successfully joined "${projectToJoin.title}"`,
+              variant: "success" as any
+            });
+          }
+        }}
+      />
+
+      {/* Project Details Modal - For viewing details of projects user is already part of */}
+      <ProjectDetailsModal
+        project={selectedProject}
+        open={projectModalOpen && selectedProject !== null}
+        onOpenChange={(open) => {
+          if (!open) {
+            setProjectModalOpen(false);
+            setSelectedProject(null);
+          }
+        }}
+      />
+
+      {/* User Attendance Modal - For checking in/out of projects */}
+      <UserAttendanceModal
+        project={selectedProjectForAttendance}
+        attendanceType={attendanceType}
+        open={attendanceModalOpen}
+        onClose={() => {
+          setAttendanceModalOpen(false);
+          setSelectedProjectForAttendance(null);
+        }}
+        onSuccess={handleAttendanceSuccess}
+      />
+    </div>
+  )
+}
