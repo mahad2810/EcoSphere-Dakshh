@@ -59,6 +59,12 @@ def render_air_quality_tab(aqi_data, aqi_metrics):
         with col_p2:
             st.markdown(f"**Dataset Reference:** [Documentation]({aqi_source['Link']})")
             st.markdown(f"**Scientific License:** {aqi_source['License']}")
+        
+        if 'Date' in aqi_data.columns and not aqi_data.empty:
+            date_min = aqi_data['Date'].min().strftime('%Y-%m-%d')
+            date_max = aqi_data['Date'].max().strftime('%Y-%m-%d')
+            st.markdown(f"**Data Range Available:** {date_min} to {date_max}")
+            
         st.caption("Verification Tip: This dashboard pulls directly from the Copernicus Atmosphere Monitoring Service (CAMS) via the Open-Meteo API gateway. Coordinates used are real-world WGS84 centroids.")
     
     
@@ -69,7 +75,9 @@ def render_air_quality_tab(aqi_data, aqi_metrics):
     fig.add_scatter(x=yearly_data['Year'], y=yearly_data['max_aqi'], mode='lines+markers', name='Maximum AQI', line=dict(color='red', dash='dash'))
     fig.add_scatter(x=yearly_data['Year'], y=yearly_data['min_aqi'], mode='lines+markers', name='Minimum AQI', line=dict(color='green', dash='dash'))
     fig.update_layout(height=500)
+    fig.update_layout(height=500)
     st.plotly_chart(fig, use_container_width=True)
+    st.caption("Description: This graph illustrates the trend of Air Quality averages, maximums, and minimums over the available years, providing a high-level view of long-term air quality shifts.")
     figures_to_export.append(fig)
     
     st.markdown("### Monthly Air Quality Patterns")
@@ -78,7 +86,9 @@ def render_air_quality_tab(aqi_data, aqi_metrics):
                  labels={'avg_aqi': 'Average AQI', 'Month': 'Month'}, color='avg_aqi',
                  color_continuous_scale=px.colors.sequential.Plasma)
     fig.update_layout(height=500)
+    fig.update_layout(height=500)
     st.plotly_chart(fig, use_container_width=True)
+    st.caption("Description: This bar chart displays the average AQI for each month, helping to identify seasonal patterns and peak pollution periods within a standard year.")
     figures_to_export.append(fig)
     
     st.markdown("### AQI Categories and Ranges")
@@ -99,7 +109,9 @@ def render_air_quality_tab(aqi_data, aqi_metrics):
     fig = px.histogram(aqi_data, x='AQI', title='Distribution of AQI Values', color='AQI_Category',
                        color_discrete_map={cat: get_aqi_color(cat) for cat in aqi_data['AQI_Category'].unique()})
     fig.update_layout(height=500)
+    fig.update_layout(height=500)
     st.plotly_chart(fig, use_container_width=True)
+    st.caption("Description: This histogram maps out the frequency of various AQI value ranges, showing how prevalent different levels of air pollution are in the dataset.")
     figures_to_export.append(fig)
     
     st.markdown("### AQI Categories Breakdown")
@@ -108,7 +120,9 @@ def render_air_quality_tab(aqi_data, aqi_metrics):
     fig = px.pie(category_counts, values='Count', names='Category', title='Distribution of AQI Categories', color='Category',
                  color_discrete_map={cat: get_aqi_color(cat) for cat in category_counts['Category']})
     fig.update_layout(height=500)
+    fig.update_layout(height=500)
     st.plotly_chart(fig, use_container_width=True)
+    st.caption("Description: A comparative pie chart breakdown of air quality categories, making it easy to see the proportion of time spent in 'Good' versus 'Poor' or 'Severe' conditions.")
     figures_to_export.append(fig)
     
     st.markdown("<hr>", unsafe_allow_html=True)

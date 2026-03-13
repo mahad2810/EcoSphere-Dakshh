@@ -1,0 +1,37 @@
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Virtual environments
+.venv/
+venv/
+ENV/
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Jupyter
+.ipynb_checkpoints/
+
+# Data - default behavior unchanged from original; comment the following if you want to include raw data in git
+#/data/raw/
+#AQIData/
+#ghgemission/
+#land/
+#MarineData/
+#*.mdb
+#*.nc
+#*.xlsx
+#*.csv
+#*.geojson
+#!data/samples/**
+
+# Models
+*.keras
+*.h5
+
+# Streamlit cache
+.streamlit/
+**/.cache/
