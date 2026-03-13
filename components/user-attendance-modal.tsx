@@ -204,7 +204,7 @@ export function UserAttendanceModal({
     }
   };
 
-  // Verify photo with OpenAI
+  // Verify photo with Groq AI
   const verifyPhotoWithAI = async (photoData: string, projectLocation: string) => {
     try {
       const response = await fetch('/api/user/location-verification', {
