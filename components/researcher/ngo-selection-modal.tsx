@@ -17,67 +17,52 @@ import {
   BarChart3
 } from "lucide-react";
 
-// Sample NGO data – Kolkata-based organisations
+// Sample NGO data
 const ngoData = [
   {
     id: "ngo-001",
-    name: "Hooghly River Conservation Trust",
-    logo: <Waves className="h-6 w-6 text-teal-600" />,
+    name: "Hooghly River Guardians",
+    logo: <TreePine className="h-6 w-6 text-teal-600" />,
     location: "Kolkata, West Bengal",
-    established: "2016",
-    description: "Dedicated to the ecological restoration of the Hooghly River and its tributaries. Leads community-driven riverbank clean-up drives, water-quality monitoring, and anti-encroachment campaigns. Successfully delivered 28 projects in partnership with the West Bengal Pollution Control Board.",
-    tags: ["River Restoration", "Water Quality", "Community Engagement"],
+    established: "2017",
+    description: "Specializes in riverfront conservation, ghat cleanup, and community-based environmental monitoring. Successfully managed 24 projects focusing on water quality improvement and urban wetland restoration.",
+    tags: ["River Conservation", "Water Quality", "Community Engagement"],
     rating: 4.8,
-    projects: 28,
-    years: "8+",
-    success: "89%",
+    projects: 24,
+    years: "5+",
+    success: "87%",
     isTopRated: true,
     logoColor: "text-teal-600"
   },
   {
     id: "ngo-002",
-    name: "Sabuj Mancha Kolkata",
-    logo: <TreePine className="h-6 w-6 text-green-600" />,
-    location: "Kolkata, West Bengal",
-    established: "2018",
-    description: "Advocates for urban green spaces, rooftop gardens, and tree-cover expansion across Kolkata's neighbourhoods. Partnered with the Kolkata Municipal Corporation on 19 urban-greening and heat-island mitigation projects, including the Salt Lake Bio-Corridor Initiative.",
-    tags: ["Urban Greening", "Heat Island Mitigation", "Policy Advocacy"],
-    rating: 4.1,
-    projects: 19,
-    years: "6+",
-    success: "82%",
+    name: "East Kolkata Wetlands Foundation",
+    logo: <Waves className="h-6 w-6 text-blue-600" />,
+    location: "Salt Lake, Kolkata",
+    established: "2019",
+    description: "Focus on urban wetland preservation and plastic pollution reduction. Worked with local governments on 17 successful projects, including the Bidyadhari River Watershed Management Initiative.",
+    tags: ["Urban Wetlands", "Plastic Pollution", "Policy Advocacy"],
+    rating: 3.9,
+    projects: 17,
+    years: "3+",
+    success: "79%",
     isTopRated: false,
-    logoColor: "text-green-600"
+    logoColor: "text-blue-600"
   },
   {
     id: "ngo-003",
-    name: "Sundarbans Environment Research Institute",
+    name: "Bengal Climate Research Collective",
     logo: <BarChart3 className="h-6 w-6 text-amber-600" />,
-    location: "Kolkata & South 24 Parganas, West Bengal",
-    established: "2013",
-    description: "A research-intensive organisation focused on mangrove conservation, coastal biodiversity monitoring, and climate-resilience studies in the Sundarbans delta. Holds active MOUs with Jadavpur University and IIT Kharagpur, and has led 35 field-research and habitat-restoration projects.",
-    tags: ["Mangrove Conservation", "Coastal Research", "Climate Resilience"],
-    rating: 4.6,
-    projects: 35,
-    years: "11+",
-    success: "93%",
+    location: "Multiple Locations, West Bengal",
+    established: "2015",
+    description: "A research-focused organization with experience in scientific monitoring and data collection across Bengal. Has partnerships with 8 universities and managed 31 research-intensive environmental projects.",
+    tags: ["Research", "Data Collection", "Academic Partnerships"],
+    rating: 4.2,
+    projects: 31,
+    years: "8+",
+    success: "92%",
     isTopRated: false,
     logoColor: "text-amber-600"
-  },
-  {
-    id: "ngo-004",
-    name: "Paribesh Bachao Andolan",
-    logo: <TreePine className="h-6 w-6 text-blue-600" />,
-    location: "Kolkata, West Bengal",
-    established: "2020",
-    description: "A grassroots movement tackling air-quality degradation and industrial pollution in and around Kolkata. Runs citizen-science air-monitoring networks, organises legal-awareness workshops, and has successfully mobilised 12 community-led pollution-reduction campaigns in collaboration with local panchayats.",
-    tags: ["Air Quality", "Industrial Pollution", "Citizen Science"],
-    rating: 3.9,
-    projects: 12,
-    years: "4+",
-    success: "75%",
-    isTopRated: false,
-    logoColor: "text-blue-600"
   }
 ];
 
@@ -199,9 +184,8 @@ export function NGOSelectionModal({
                       {[1, 2, 3, 4, 5].map((star) => {
                         const colorMap: { [key: string]: string } = {
                           "text-teal-600": "#14b8a6",
-                          "text-blue-600": "#2563eb",
-                          "text-amber-600": "#d97706",
-                          "text-green-600": "#16a34a"
+                          "text-blue-600": "#2563eb", 
+                          "text-amber-600": "#d97706"
                         };
                         const fillColor = colorMap[ngo.logoColor] || "#14b8a6";
                         return (
