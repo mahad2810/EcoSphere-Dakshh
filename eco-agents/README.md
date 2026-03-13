@@ -213,3 +213,86 @@ curl -X POST http://localhost:8000/verify-impact \
 
 - In Next.js, set `AI_EVALUATOR_URL=http://localhost:8000` in `.env.local`.
 - Impact verification callbacks are non-fatal for the caller: if callback delivery fails, FastAPI logs the error but still returns success for the verification request.
+
+## Confidence Score Calculation (Exact)
+
+This section is a direct reference for how every confidence value is computed in code.
+
+### A) Proposal evaluator confidence (`/evaluate`)
+
+- Field: `ai_confidence_score`
+- Range: `0..100` (integer)
+- Where computed: `synthesizer` node
+
+Rules:
+1. Start with default `confidence_score = 50`.
+2. Ask LLM to include a line like `Confidence Score: <number>`.
+3. Parse first integer from that line using regex `re.findall(r"\\d+", line)`.
+4. Clamp parsed value to `0..100`.
+5. If missing/unparseable, keep default `50`.
+
+Formula:
+`ai_confidence_score = clamp_0_100(parsed_integer_or_50)`
+
+### B) Vision/Fraud confidence (`/verify-impact`)
+
+- Field: `vision_confidence`
+- Range: `0..1` (float)
+- Where computed: `vision_fraud_agent`
+
+Normal path:
+1. Vision model returns JSON key `confidence`.
+2. Use default `0.55` when the key is missing.
+3. Clamp to `0..1`.
+
+Fallback path (provider error):
+1. Use deterministic heuristic (`len(claim_text.strip()) >= 15` and no duplicates).
+2. If heuristic passes: `vision_confidence = 0.45`.
+3. If heuristic fails: `vision_confidence = 0.35`.
+
+Formulas:
+- Normal: `vision_confidence = clamp_0_1(model_confidence_or_0.55)`
+- Fallback: `vision_confidence = 0.45 if heuristic_pass else 0.35`
+
+### C) Geospatial confidence (`/verify-impact`)
+
+- Field: `geo_confidence`
+- Range: `0..1` (float)
+- Where computed: `geospatial_agent`
+
+Base score:
+`geo_confidence = 0.5`
+
+Distance contribution:
+- `+0.25` if within radius
+- `-0.25` if outside radius
+
+Area-text match contribution (only when project area text check is active):
+- `+0.2` if match
+- `-0.2` if mismatch
+
+Then clamp to `0..1`.
+
+Special case:
+- If coordinates are missing: immediate `geo_confidence = 0.1` and fail.
+
+Formula:
+`geo_confidence = clamp_0_1(0.5 + distance_term + area_term)`
+
+### D) Final impact confidence (`/verify-impact`)
+
+- Field: `final_confidence`
+- Range: `0..1` (float)
+- Where computed: `impact_decision_agent`
+
+Formula:
+`final_confidence = clamp_0_1((vision_confidence + geo_confidence) / 2)`
+
+Notes:
+- It is an equal-weight average (50/50 vision and geo).
+- Decision logic (`approved`/`rejected`/`manual_review`) is separate from this average.
+
+### E) Scale difference reminder
+
+- Proposal confidence (`ai_confidence_score`) uses `0..100` integer scale.
+- Impact confidence (`vision_confidence`, `geo_confidence`, `final_confidence`) uses `0..1` float scale.
