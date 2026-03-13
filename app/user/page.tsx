@@ -648,73 +648,73 @@ export default function UserDashboard() {
           <nav className="p-4 space-y-2">
             <Button
               variant={activeSection === "dashboard" ? "default" : "ghost"}
-              className={`w-full justify-start ${
-                activeSection === "dashboard" ? "bg-emerald-500 text-white hover:bg-emerald-600" : "hover:bg-emerald-50"
+              className={`w-full justify-start h-auto py-3 px-4 ${
+                activeSection === "dashboard" ? "bg-emerald-500 text-white hover:bg-emerald-600" : "hover:bg-emerald-100 hover:text-emerald-800"
               }`}
               onClick={() => setActiveSection("dashboard")}
             >
-              <Home className="w-4 h-4 mr-3" />
-              {t.dashboard}
+              <Home className="w-5 h-5 mr-3 shrink-0" />
+              <div className="flex-1 text-left whitespace-normal break-words">{t.dashboard}</div>
             </Button>
             <Button
               variant={activeSection === "my-active-projects" ? "default" : "ghost"}
-              className={`w-full justify-start ${
+              className={`w-full justify-start h-auto py-3 px-4 ${
                 activeSection === "my-active-projects"
                   ? "bg-emerald-500 text-white hover:bg-emerald-600"
-                  : "hover:bg-emerald-50"
+                  : "hover:bg-emerald-100 hover:text-emerald-800"
               }`}
               onClick={() => setActiveSection("my-active-projects")}
             >
-              <TreePine className="w-4 h-4 mr-3" />
-              {t.myActiveProjects}
+              <TreePine className="w-5 h-5 mr-3 shrink-0" />
+              <div className="flex-1 text-left whitespace-normal break-words">{t.myActiveProjects}</div>
             </Button>
             <Button
               variant={activeSection === "report-issue" ? "default" : "ghost"}
-              className={`w-full justify-start ${
+              className={`w-full justify-start h-auto py-3 px-4 ${
                 activeSection === "report-issue"
                   ? "bg-emerald-500 text-white hover:bg-emerald-600"
-                  : "hover:bg-emerald-50"
+                  : "hover:bg-emerald-100 hover:text-emerald-800"
               }`}
               onClick={() => setActiveSection("report-issue")}
             >
-              <FileText className="w-4 h-4 mr-3" />
-              {t.reportIssue}
+              <FileText className="w-5 h-5 mr-3 shrink-0" />
+              <div className="flex-1 text-left whitespace-normal break-words">{t.reportIssue}</div>
             </Button>
             <Button
               variant={activeSection === "community-leaderboard" ? "default" : "ghost"}
-              className={`w-full justify-start ${
+              className={`w-full justify-start h-auto py-3 px-4 ${
                 activeSection === "community-leaderboard"
                   ? "bg-emerald-500 text-white hover:bg-emerald-600"
-                  : "hover:bg-emerald-50"
+                  : "hover:bg-emerald-100 hover:text-emerald-800"
               }`}
               onClick={() => setActiveSection("community-leaderboard")}
             >
-              <Trophy className="w-4 h-4 mr-3" />
-              {t.communityLeaderboard}
+              <Trophy className="w-5 h-5 mr-3 shrink-0" />
+              <div className="flex-1 text-left whitespace-normal break-words">{t.communityLeaderboard}</div>
             </Button>
             <Button
               variant={activeSection === "education-hub" ? "default" : "ghost"}
-              className={`w-full justify-start ${
+              className={`w-full justify-start h-auto py-3 px-4 ${
                 activeSection === "education-hub"
                   ? "bg-emerald-500 text-white hover:bg-emerald-600"
-                  : "hover:bg-emerald-50"
+                  : "hover:bg-emerald-100 hover:text-emerald-800"
               }`}
               onClick={() => setActiveSection("education-hub")}
             >
-              <GraduationCap className="w-4 h-4 mr-3" />
-              {t.environmentEducationHub}
+              <GraduationCap className="w-5 h-5 mr-3 shrink-0" />
+              <div className="flex-1 text-left whitespace-normal break-words">{t.environmentEducationHub}</div>
             </Button>
             <Button
               variant={activeSection === "environmental-journey" ? "default" : "ghost"}
-              className={`w-full justify-start ${
+              className={`w-full justify-start h-auto py-3 px-4 ${
                 activeSection === "environmental-journey"
                   ? "bg-emerald-500 text-white hover:bg-emerald-600"
-                  : "hover:bg-emerald-50"
+                  : "hover:bg-emerald-100 hover:text-emerald-800"
               }`}
               onClick={() => setActiveSection("environmental-journey")}
             >
-              <Route className="w-4 h-4 mr-3" />
-              {t.myEnvironmentalJourney}
+              <Route className="w-5 h-5 mr-3 shrink-0" />
+              <div className="flex-1 text-left whitespace-normal break-words">{t.myEnvironmentalJourney}</div>
             </Button>
           </nav>
         </aside>
